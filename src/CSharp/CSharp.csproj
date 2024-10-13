@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <RootNamespace>$(BaseNamespace).CSharp</RootNamespace>
+        <AssemblyName>$(RootNamespace)</AssemblyName>
+        <DocumentationFile>Properties\$(AssemblyName).xml</DocumentationFile>
+        <Description>C# extensions for ServiceCraftify.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Core\Core.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Jeevan.ServiceCraftify</name>
+    </assembly>
+    <members>
+        <member name="P:Jeevan.ServiceCraftify.GenerateOptions.GeneratorName">
+            <summary>
+                The name of the generator in the generator package. This property is not needed if:<br/>
+                o The package contains only one generator.<br/>
+                o The package contains multiple generators, but a default generator is defined and you want
+                  to use that.
+            </summary>
+            <value></value>
+        </member>
+    </members>
+</doc>

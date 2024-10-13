@@ -1,0 +1,10 @@
+<Project>
+
+    <PropertyGroup>
+        <BaseNamespace>Jeevan.ServiceCraftify</BaseNamespace>
+        <Product>ServiceCraftify</Product>
+        <RepositoryName>ServiceCraftify</RepositoryName>
+        <CopyrightYears>2023-2024</CopyrightYears>
+    </PropertyGroup>
+
+</Project>
