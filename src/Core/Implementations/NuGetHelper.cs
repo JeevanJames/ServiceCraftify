@@ -2,6 +2,9 @@ using System.Diagnostics;
 
 using NuGet.Common;
 using NuGet.Configuration;
+using NuGet.Frameworks;
+using NuGet.Packaging;
+using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 
@@ -56,4 +59,40 @@ internal static class NuGetHelper
     }
 
     internal sealed record LatestPackage(NuGetVersion Version, SourceRepository Repository);
+
+    internal static async Task DownloadNuGetPackageAsync(SourceRepository repository, string packageId,
+        NuGetVersion version, string targetFramework, string outputDirectory)
+    {
+        SourceCacheContext cache = new();
+
+        string downloadDirectory = Path.Combine(Path.GetTempPath(), "ServiceCraftify", Guid.NewGuid().ToString("D"));
+        DownloadResource downloadResource = await repository.GetResourceAsync<DownloadResource>();
+        DownloadResourceResult downloadResult = await downloadResource.GetDownloadResourceResultAsync(
+            new PackageIdentity(packageId, version),
+            new PackageDownloadContext(cache),
+            downloadDirectory, NullLogger.Instance, CancellationToken.None);
+
+        using PackageReaderBase packageReader = downloadResult.PackageReader;
+        NuspecReader nuspecReader = packageReader.NuspecReader;
+
+        IEnumerable<NuGetFramework> packageFrameworks = nuspecReader.GetDependencyGroups().Select(dg => dg.TargetFramework);
+        FrameworkReducer reducer = new();
+        NuGetFramework bestMatchFramework = reducer.GetNearest(NuGetFramework.ParseFolder(targetFramework), packageFrameworks) ??
+            throw new InvalidOperationException("Could not find matching framework.");
+
+        IEnumerable<string> files = packageReader.GetLibItems()
+            .Where(fsg => fsg.TargetFramework == bestMatchFramework)
+            .SelectMany(fsg => fsg.Items);
+
+        string packageDirectory = Path.Combine(outputDirectory, packageId.ToLowerInvariant(), version.ToString());
+        if (!Directory.Exists(packageDirectory))
+            Directory.CreateDirectory(packageDirectory);
+        foreach (string file in files)
+        {
+            string outputFile = Path.Combine(packageDirectory, Path.GetFileName(file));
+            await using FileStream fs = new(outputFile, FileMode.Create);
+            Stream packageFileStream = packageReader.GetStream(file);
+            await packageFileStream.CopyToAsync(fs);
+        }
+    }
 }

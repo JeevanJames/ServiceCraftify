@@ -1,26 +1,94 @@
 using System.Text;
 
-using Jeevan.ServiceCraftify.Implementations;
+using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi.Readers;
 
 namespace Jeevan.ServiceCraftify;
 
-public static class Craftify
+public sealed class Craftify
 {
-    public static Task InitializeConfigAsync(TextWriter configWriter)
+    private readonly OpenApiDocument _openApiDoc;
+
+    public OpenApiDiagnostic Diagnostic { get; }
+
+    public Craftify(Stream openApiStream)
     {
-        return Task.CompletedTask;
+        ArgumentNullException.ThrowIfNull(openApiStream);
+        _openApiDoc = new OpenApiStreamReader().Read(openApiStream, out OpenApiDiagnostic diagnostic);
+        Diagnostic = diagnostic;
     }
 
-    public static async Task InitializeConfigAsync(string configFilePath)
+    public Craftify(string openApiString)
     {
-        await using FileStream fs = new(configFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
-        await using StreamWriter writer = new(fs, Encoding.UTF8);
-        await InitializeConfigAsync(writer);
+        _openApiDoc = new OpenApiStringReader().Read(openApiString, out OpenApiDiagnostic diagnostic);
+        Diagnostic = diagnostic;
     }
 
-    public static async Task<string> GenerateAsync(GenerateOptions options)
+    public Craftify(TextReader reader)
     {
-        GenerateImplementation impl = await GenerateImplementation.Create(options);
-        return await impl.GenerateAsync();
+        ArgumentNullException.ThrowIfNull(reader);
+        _openApiDoc = new OpenApiTextReaderReader().Read(reader, out OpenApiDiagnostic diagnostic);
+        Diagnostic = diagnostic;
+    }
+
+    public static async Task<Craftify> FromUri(Uri openApiUri, HttpClient? httpClient = null)
+    {
+        ArgumentNullException.ThrowIfNull(openApiUri);
+
+        httpClient ??= new HttpClient();
+        await using Stream openApiStream = await httpClient.GetStreamAsync(openApiUri);
+        return new Craftify(openApiStream);
+    }
+
+    public static async Task<Craftify> FromFile(string filePath)
+    {
+        ArgumentNullException.ThrowIfNull(filePath);
+        if (!File.Exists(filePath))
+            throw new FileNotFoundException($"OpenAPI file '{filePath}' not found.", filePath);
+
+        await using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return new Craftify(fs);
+    }
+
+    public static async Task<Craftify> FromFile(FileInfo file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (!file.Exists)
+            throw new FileNotFoundException($"OpenAPI file '{file.FullName}' not found.", file.FullName);
+
+        await using FileStream fs = new(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return new Craftify(fs);
+    }
+
+    public void EnsureNoErrors(bool failOnWarnings = false)
+    {
+        StringBuilder? errorMessage = null;
+
+        if (Diagnostic.Errors.Count > 0)
+        {
+            errorMessage = Diagnostic.Errors.Aggregate(new StringBuilder(),
+                (sb, err) => sb.Append('[').Append(err.Pointer).Append("] ").AppendLine(err.Message));
+        }
+
+        if (failOnWarnings && Diagnostic.Warnings.Count > 0)
+        {
+            errorMessage = Diagnostic.Warnings.Aggregate(errorMessage ?? new StringBuilder(),
+                (sb, err) => sb.Append('[').Append(err.Pointer).Append("] ").AppendLine(err.Message));
+        }
+
+        if (errorMessage is not null)
+            throw new InvalidOperationException(errorMessage.ToString());
+    }
+
+    public IEnumerable<GeneratedCode> Generate<TGenerator, TSettings>(TSettings settings)
+        where TGenerator : Generator<TSettings>, new()
+        where TSettings : GeneratorSettings
+    {
+        TGenerator generator = new()
+        {
+            OpenApiDoc = _openApiDoc,
+            Settings = settings,
+        };
+        return generator.Generate();
     }
 }
