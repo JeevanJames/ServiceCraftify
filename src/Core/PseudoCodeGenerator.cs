@@ -1,5 +1,8 @@
 ﻿using System.Text;
 
+using Jeevan.ServiceCraftify.Transformers;
+using Jeevan.ServiceCraftify.TypeProcessing;
+
 using Microsoft.OpenApi.Models;
 
 namespace Jeevan.ServiceCraftify;
@@ -28,20 +31,20 @@ public sealed class PseudoCodeGenerator : Generator<GeneratorSettings>
 
         sb.AppendLine("======================");
 
-        foreach (KeyValuePair<string, OpenApiSchema> schemaKvp in OpenApiDoc.Components.Schemas)
+        foreach (OpenApiSchema schema in OpenApiDoc.Components.Schemas.Values)
         {
-            sb.AppendLine(schemaKvp.GetName());
-            foreach (KeyValuePair<string, OpenApiSchema> propertySchemaKvp in schemaKvp.Value.Properties)
+            sb.AppendLine(schema.GetName());
+            foreach (OpenApiSchema propertySchema in schema.Properties.Values)
             {
-                sb.AppendLine($"    {propertySchemaKvp.GetName()}: {propertySchemaKvp.Value.Type}");
+                sb.AppendLine($"    {propertySchema.GetName()}: {propertySchema.Type}");
             }
         }
 
         yield return new GeneratedCode("Client.txt", sb.ToString());
     }
 
-    protected override IEnumerable<DocumentProcessor> GetDocumentProcessors()
-    {
-        yield return new TransformDocumentProcessor(OpenApiDoc, Settings);
-    }
+    protected override DocumentProcessor[] GetDocumentProcessors() => [
+        new TransformDocumentProcessor(OpenApiDoc, Settings),
+        new TypeDocumentProcessor(OpenApiDoc),
+    ];
 }

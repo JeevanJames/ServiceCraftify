@@ -1,5 +1,8 @@
 ﻿using Humanizer;
 
+using Jeevan.ServiceCraftify.Transformers;
+using Jeevan.ServiceCraftify.TypeProcessing;
+
 using Microsoft.OpenApi.Models;
 
 using NCodeBuilder;
@@ -7,55 +10,12 @@ using NCodeBuilder.CSharp;
 
 namespace Jeevan.ServiceCraftify.CSharp;
 
-#pragma warning disable S2325 // Methods and properties that don't access instance data should be static
-public sealed class CSharpClientGenerator : Generator<CSharpClientGeneratorSettings>
+public sealed partial class CSharpClientGenerator : Generator<CSharpClientGeneratorSettings>
 {
-    private bool? _generateConsolidatedClient;
-    private string[]? _serviceNames;
-
-    private bool SeparateNamespaces =>
-        !string.IsNullOrWhiteSpace(Settings.ModelNamespace) &&
-            !string.Equals(Settings.ClientNamespace, Settings.ModelNamespace, StringComparison.Ordinal);
-
-    private bool GetGenerateConsolidatedClient()
-    {
-        if (_generateConsolidatedClient.HasValue)
-            return _generateConsolidatedClient.Value;
-
-        string[] serviceNames = GetServiceNames();
-
-        bool generateConsolidatedClient = Settings.ConsolidatedClientGeneration switch
-        {
-            ConsolidatedClientGeneration.IfMultipleClients => serviceNames.Length > 1,
-            ConsolidatedClientGeneration.Never => false,
-            ConsolidatedClientGeneration.Always => true,
-            _ => throw new NotSupportedException($"Unrecognized {nameof(ConsolidatedClientGeneration)} value {Settings.ConsolidatedClientGeneration}"),
-        };
-
-        _generateConsolidatedClient = generateConsolidatedClient;
-        return generateConsolidatedClient;
-    }
-
-    private string[] GetServiceNames()
-    {
-        if (_serviceNames is not null)
-            return _serviceNames;
-
-        _serviceNames = OpenApiDoc.Paths.Values
-            .Select(path => path.Operations)
-            .SelectMany(operationKvp => operationKvp.Values)
-            .Select(operation => operation.GetName())
-            .Distinct(StringComparer.Ordinal)
-            .Order()
-            .ToArray();
-
-        return _serviceNames;
-    }
-
-    protected override IEnumerable<DocumentProcessor> GetDocumentProcessors()
-    {
-        yield return new TransformDocumentProcessor(OpenApiDoc, Settings);
-    }
+    protected override DocumentProcessor[] GetDocumentProcessors() => [
+        new TransformDocumentProcessor(OpenApiDoc, Settings),
+        new TypeDocumentProcessor(OpenApiDoc),
+    ];
 
     protected override IEnumerable<GeneratedCode> GenerateCode()
     {
@@ -72,20 +32,11 @@ public sealed class CSharpClientGenerator : Generator<CSharpClientGeneratorSetti
             .UsingAlias("System", "global::System")
             .Using("System.Linq")
             ._____
-            .Generate(cb => cb
-                .NamespaceFileScoped(Settings.ClientNamespace)
-                ._____
-                .Generate(GenerateClients)
-                ._____
-                .Generate(GenerateModels), !SeparateNamespaces)
-            .Generate(cb => cb
-                .Namespace(Settings.ClientNamespace)
-                .Generate(GenerateClients)
-                .EndNamespace()
-                ._____
-                .Namespace(Settings.ModelNamespace ?? Settings.ClientNamespace)
-                .Generate(GenerateModels)
-                .EndNamespace(), SeparateNamespaces);
+            .NamespaceFileScoped(Settings.Namespace)
+            ._____
+            .Generate(GenerateClients)
+            ._____
+            .Generate(GenerateModels);
 
         yield return new GeneratedCode("GeneratedClient.cs", builder.ToString());
     }
@@ -100,26 +51,26 @@ public sealed class CSharpClientGenerator : Generator<CSharpClientGeneratorSetti
     private void GenerateConsolidatedClient(CodeBuilder builder)
     {
         builder
-            .Interface($"I{Settings.ConsolidatedClientName}").Public.Partial._
+            .Interface($"I{Settings.ConsolidatedClient.Name}").Public.Partial._
                 ._("System.Net.Http.HttpClient Client { get; }")
                 .Repeat(GetServiceNames(), (cb, state) => cb
-                    ._($$"""I{{state.Item}} {{state.Item}} { get; }"""))
+                    ._($$"""I{{state.Item}} {{TransformConsolidatedClientProperty(state.Item).Pascalize()}} { get; }"""))
             .EndInterface()
             ._____
-            .Block($"public partial class {Settings.ConsolidatedClientName} : I{Settings.ConsolidatedClientName}")
+            .Block($"public partial class {Settings.ConsolidatedClient.Name} : I{Settings.ConsolidatedClient.Name}")
                 .Repeat(GetServiceNames(), (cb, state) => cb
-                    ._($"private I{state.Item}? _{state.Item.Camelize()};"))
+                    ._($"private I{state.Item}? _{TransformConsolidatedClientProperty(state.Item).Camelize()};"))
                 ._____
-                .Block($"public {Settings.ConsolidatedClientName}(System.Net.Http.HttpClient client)")
+                .Block($"public {Settings.ConsolidatedClient.Name}(System.Net.Http.HttpClient client)")
                     ._("Client = client ??  throw new System.ArgumentNullException(nameof(client));")
                     ._("if (client.BaseAddress is null)")
-                        .Indent._("""throw new System.ArgumentException("HTTP client base address is null.");""").Unindent
+                        .__("""throw new System.ArgumentException("HTTP client base address is null.");""")
                 .EndBlock()
                 ._____
                 ._("public System.Net.Http.HttpClient Client { get; }")
                 ._____
                 .Repeat(GetServiceNames(), (cb, state) => cb
-                    ._($"public I{state.Item} {state.Item.Pascalize()} => _{state.Item.Camelize()} ?? new {state.Item}(Client);"))
+                    ._($"public I{state.Item} {TransformConsolidatedClientProperty(state.Item).Pascalize()} => _{TransformConsolidatedClientProperty(state.Item).Camelize()} ?? new {state.Item}(Client);"))
             .EndBlock();
     }
 
@@ -128,28 +79,56 @@ public sealed class CSharpClientGenerator : Generator<CSharpClientGeneratorSetti
         builder
             .Repeat(GetServiceNames(), (cb, state) => cb
                 ._____
-                ._($"public partial interface I{state.Item};")
+                .Block($"public partial interface I{state.Item}")
+                .Generate(GenerateClientInterfaceMethods, state.Item)
+                .EndBlock()
+                ._____
                 ._($"public partial class {state.Item} : I{state.Item};"));
     }
 
-    private void GenerateModels(CodeBuilder builder) => builder
-        .Repeat(OpenApiDoc.Components.Schemas, (cb, state) => cb
-            .Inline($"public partial class {state.Item.GetName()}")
-                ._(" : IExtensionData", Settings.AddExtensionDataForModels)
-                .Done()
-            .Block()
-            .Generate(cb => GenerateProperties(cb, state.Item.Value))
-            .EndBlock()
-            ._(string.Empty, !state.IsLast));
-
-    private void GenerateProperties(CodeBuilder builder, OpenApiSchema schema)
+    private void GenerateClientInterfaceMethods(CodeBuilder builder, string serviceName)
     {
+        IEnumerable<OpenApiOperation> operations = OpenApiDoc.Paths.Values
+            .SelectMany(path => path.Operations.Values)
+            .Where(operation => operation.GetName() == serviceName);
         builder
-            .Repeat(schema.Properties, (cb, state) => cb
-                ._($"""[System.Text.Json.Serialization.JsonPropertyName("{state.Item.Key}")]""")
-                .AutoProperty(state.Item.GetName(state.Item.Key), state.Item.Value.Type)
-                    .InitializeWith("default!")
-                    .Done()
-                ._(string.Empty, !state.IsLast));
+            .Repeat(operations, (cb, state) => cb
+                ._($"/// <summary>{state.Item.Description}</summary>")
+                ._($"System.Threading.Tasks.Task {state.Item.GetName(state.Item.OperationId)}Async();"));
     }
+
+    private void GenerateModels(CodeBuilder builder) => builder
+        .Repeat(GetEnumModels(), (cb, state) => GenerateEnumModels(cb, state.Item.Schema, state.Item.SchemaType, state.IsLast))
+        .Repeat(GetObjectModels(), (cb, state) => GenerateObjectModels(cb, state.Item.Schema, state.Item.SchemaType, state.IsLast));
+
+    private static void GenerateEnumModels(CodeBuilder builder, OpenApiSchema schema, EnumSchemaType schemaType, bool isLast) => builder
+        .Generate(!string.IsNullOrWhiteSpace(schema.Description),
+            cb => cb.DocComments(schema.Description))
+        .Block($"public enum {schema.GetName()}")
+            .Repeat(schemaType.Details.Members, (cb, state) => cb
+                .Generate(state.Item.Description is not null,
+                    cb2 => cb2.DocComments(state.Item.Description!))
+                ._($"{state.Item.Name} = {state.Item.Value},")
+                ._(!state.IsLast))
+        .EndBlock()
+        ._(!isLast);
+
+#pragma warning disable S1172 // Unused method parameters should be removed
+    private void GenerateObjectModels(CodeBuilder builder, OpenApiSchema schema, ObjectSchemaType schemaType, bool isLast) => builder
+        .Inline($"public partial class {schema.GetName()}")
+            ._(" : IExtensionData", Settings.AddExtensionDataForModels)
+            .Done()
+        .Block()
+        .Generate(cb => GenerateProperties(cb, schema))
+        .EndBlock()
+        ._(!isLast);
+#pragma warning restore S1172 // Unused method parameters should be removed
+
+    private static void GenerateProperties(CodeBuilder builder, OpenApiSchema schema) => builder
+        .Repeat(schema.Properties, (cb, state) => cb
+            ._($"""[System.Text.Json.Serialization.JsonPropertyName("{state.Item.Key}")]""")
+            .AutoProperty(state.Item.Value.GetName(state.Item.Key), state.Item.Value.Type)
+                .InitializeWith("default!")
+                .Done()
+            ._(string.Empty, !state.IsLast));
 }

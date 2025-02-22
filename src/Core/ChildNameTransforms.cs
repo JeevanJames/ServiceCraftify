@@ -2,6 +2,8 @@
 
 using Humanizer;
 
+using Jeevan.ServiceCraftify.Transformers;
+
 namespace Jeevan.ServiceCraftify;
 
 public static class ChildNameTransforms
@@ -16,50 +18,32 @@ public static class ChildNameTransforms
     public static readonly ChildNameTransformer TitleCase = (name, _, _) => name.ApplyCase(LetterCasing.Title);
 
     public static ChildNameTransformer RegexReplace(string pattern, string replacement) => (name, _, _) =>
-        Regex.Replace(name, pattern, replacement);
+        NameTransforms.RegexReplace(pattern, replacement)(name);
 
     public static ChildNameTransformer RegexReplace(string pattern, MatchEvaluator evaluator) => (name, _, _) =>
-        Regex.Replace(name, pattern, evaluator);
+        NameTransforms.RegexReplace(pattern, evaluator)(name);
 
     public static ChildNameTransformer RegexReplace(Regex pattern, string replacement) => (name, _, _) =>
-        pattern.Replace(name, replacement);
+        NameTransforms.RegexReplace(pattern, replacement)(name);
 
     public static ChildNameTransformer RegexReplace(Regex pattern, MatchEvaluator evaluator) => (name, _, _) =>
-        pattern.Replace(name, evaluator);
+        NameTransforms.RegexReplace(pattern, evaluator)(name);
 
     public static ChildNameTransformer Replace(string oldValue, string newValue) => (name, _, _) =>
-        name.Replace(oldValue, newValue);
+        NameTransforms.Replace(oldValue, newValue)(name);
 
     public static ChildNameTransformer Strip(params string[] strs) => (name, _, _) =>
-    {
-        string str = name;
-        for (int i = 0; i < strs.Length; i++)
-            str = str.Replace(strs[i], string.Empty);
-        return str;
-    };
+        NameTransforms.Strip(strs)(name);
 
     public static ChildNameTransformer StripPrefix(params string[] prefixes) => (name, _, _) =>
-    {
-        string? matchingPrefix = Array.Find(prefixes,
-            prefix => name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-        return matchingPrefix is null ? name : name[matchingPrefix.Length..];
-    };
+        NameTransforms.StripPrefix(prefixes)(name);
 
     public static ChildNameTransformer StripSuffix(params string[] suffixes) => (name, _, _) =>
-    {
-        string? matchingSuffix = Array.Find(suffixes,
-            suffix => name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
-        return matchingSuffix is null ? name : name[..^matchingSuffix.Length];
-    };
+        NameTransforms.StripSuffix(suffixes)(name);
 
-#pragma warning disable S3358 // Ternary operators should not be nested
     public static ChildNameTransformer Prefix(string prefix, params string[] patterns) => (name, _, _) =>
-        patterns is null or { Length: 0 }
-            ? prefix + name
-            : Array.Exists(patterns, pattern => Regex.IsMatch(name, pattern)) ? prefix + name : name;
+        NameTransforms.Prefix(prefix, patterns)(name);
 
     public static ChildNameTransformer Suffix(string suffix, params string[] patterns) => (name, _, _) =>
-        patterns is null or { Length: 0 }
-            ? name + suffix
-            : Array.Exists(patterns, pattern => Regex.IsMatch(name, pattern)) ? name + suffix : name;
+        NameTransforms.Suffix(suffix, patterns)(name);
 }

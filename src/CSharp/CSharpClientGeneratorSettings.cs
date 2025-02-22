@@ -1,17 +1,29 @@
-﻿
+﻿using Jeevan.ServiceCraftify.Transformers;
+
 namespace Jeevan.ServiceCraftify.CSharp;
 
 public sealed class CSharpClientGeneratorSettings : GeneratorSettings
 {
-    public required string ClientNamespace { get; init; }
+    private ConsolidatedClientSettings? _consolidatedClient;
 
-    public string? ModelNamespace { get; set; }
+    public required string Namespace { get; init; }
 
-    public ConsolidatedClientGeneration ConsolidatedClientGeneration { get; set; }
-
-    public string? ConsolidatedClientName { get; set; }
+    public ConsolidatedClientSettings ConsolidatedClient
+    {
+        get => _consolidatedClient ??= new ConsolidatedClientSettings();
+        set => _consolidatedClient = value ?? throw new ArgumentNullException(nameof(value));
+    }
 
     public bool AddExtensionDataForModels { get; set; }
+}
+
+public sealed class ConsolidatedClientSettings
+{
+    public ConsolidatedClientGeneration Generation { get; set; }
+
+    public string Name { get; set; } = "Consolidated";
+
+    public NameTransformer[]? PropertyNameTransforms { get; set; }
 }
 
 public enum ConsolidatedClientGeneration

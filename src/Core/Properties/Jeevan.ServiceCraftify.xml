@@ -4,11 +4,50 @@
         <name>Jeevan.ServiceCraftify</name>
     </assembly>
     <members>
+        <member name="T:Jeevan.ServiceCraftify.Craftify">
+            <summary>
+                Starting point to use the ServiceCraftify framework. Use this class to load an Open API or Swagger
+                document using one of either the constructors of the <c>FromXXXX</c> factory methods.
+            </summary>
+        </member>
+        <member name="P:Jeevan.ServiceCraftify.Craftify.Diagnostic">
+            <summary>
+                Errors and warnings related to the loading of the Open API document.
+            </summary>
+        </member>
+        <member name="M:Jeevan.ServiceCraftify.Craftify.EnsureNoErrors(System.Boolean)">
+            <summary>
+                Throws an exception if there were errors when loading the Open API document.
+            </summary>
+            <param name="failOnWarnings">
+                Throw an exception even if there are only warnings from loading the Open API document.
+            </param>
+            <exception cref="T:Jeevan.ServiceCraftify.CraftifyException">
+                Thrown if there were errors when loading the Open API document.
+            </exception>
+        </member>
         <member name="P:Jeevan.ServiceCraftify.GeneratorSettings.DefaultServiceName">
             <summary>
                 Provides a default name for services, if the name is not specified in the Open API document.<br/>
                 By default, the first tag name of the operation is considered to be the service name. If
                 the operation has no tags, then this value is used instead.
+            </summary>
+        </member>
+        <member name="P:Jeevan.ServiceCraftify.GeneratorSettings.Transformers">
+            <summary>
+                Transformers for names of Open API artefacts such as services, operations, operation parameters,
+                models and model properties.
+            </summary>
+        </member>
+        <member name="T:Jeevan.ServiceCraftify.Transformers.NameTransformer">
+            <summary>
+                Delegate to transform the names of top level items like models (Open API schemas) and services.
+            </summary>
+        </member>
+        <member name="T:Jeevan.ServiceCraftify.Transformers.ChildNameTransformer">
+            <summary>
+                Delegate to transform the names of child level items like model properties (Open API schemas)
+                and service operations (Open API operations).
             </summary>
         </member>
     </members>

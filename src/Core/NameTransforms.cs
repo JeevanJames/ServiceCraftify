@@ -2,6 +2,8 @@
 
 using Humanizer;
 
+using Jeevan.ServiceCraftify.Transformers;
+
 namespace Jeevan.ServiceCraftify;
 
 public static class NameTransforms
@@ -21,7 +23,7 @@ public static class NameTransforms
     public static NameTransformer RegexReplace(string pattern, MatchEvaluator evaluator) => name =>
         Regex.Replace(name, pattern, evaluator);
 
-    public static NameTransformer RegexReplace(Regex pattern, string replacement) => name =>
+    public static NameTransformer RegexReplace(Regex  pattern, string replacement) => name =>
         pattern.Replace(name, replacement);
 
     public static NameTransformer RegexReplace(Regex pattern, MatchEvaluator evaluator) => name =>

@@ -15,15 +15,21 @@ public abstract class Generator<TSettings>
 
     public IEnumerable<GeneratedCode> Generate()
     {
-        foreach (DocumentProcessor processor in GetDocumentProcessors())
+        DocumentProcessor[] processors = GetDocumentProcessors();
+        EnsureDocumentProcessorDependencies(processors);
+
+        foreach (DocumentProcessor processor in processors)
             processor.Process();
+
         return GenerateCode();
     }
 
     protected abstract IEnumerable<GeneratedCode> GenerateCode();
 
-    protected virtual IEnumerable<DocumentProcessor> GetDocumentProcessors()
+    protected virtual DocumentProcessor[] GetDocumentProcessors() => [];
+
+    private void EnsureDocumentProcessorDependencies(DocumentProcessor[] processors)
     {
-        yield break;
+        //TODO:
     }
 }

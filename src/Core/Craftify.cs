@@ -5,10 +5,17 @@ using Microsoft.OpenApi.Readers;
 
 namespace Jeevan.ServiceCraftify;
 
+/// <summary>
+///     Starting point to use the ServiceCraftify framework. Use this class to load an Open API or Swagger
+///     document using one of either the constructors of the <c>FromXXXX</c> factory methods.
+/// </summary>
 public sealed class Craftify
 {
     private readonly OpenApiDocument _openApiDoc;
 
+    /// <summary>
+    ///     Errors and warnings related to the loading of the Open API document.
+    /// </summary>
     public OpenApiDiagnostic Diagnostic { get; }
 
     public Craftify(Stream openApiStream)
@@ -60,6 +67,15 @@ public sealed class Craftify
         return new Craftify(fs);
     }
 
+    /// <summary>
+    ///     Throws an exception if there were errors when loading the Open API document.
+    /// </summary>
+    /// <param name="failOnWarnings">
+    ///     Throw an exception even if there are only warnings from loading the Open API document.
+    /// </param>
+    /// <exception cref="CraftifyException">
+    ///     Thrown if there were errors when loading the Open API document.
+    /// </exception>
     public void EnsureNoErrors(bool failOnWarnings = false)
     {
         StringBuilder? errorMessage = null;
@@ -77,7 +93,7 @@ public sealed class Craftify
         }
 
         if (errorMessage is not null)
-            throw new InvalidOperationException(errorMessage.ToString());
+            throw new CraftifyException(errorMessage.ToString());
     }
 
     public IEnumerable<GeneratedCode> Generate<TGenerator, TSettings>(TSettings settings)

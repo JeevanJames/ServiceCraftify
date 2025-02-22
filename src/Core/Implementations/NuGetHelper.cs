@@ -78,7 +78,7 @@ internal static class NuGetHelper
         IEnumerable<NuGetFramework> packageFrameworks = nuspecReader.GetDependencyGroups().Select(dg => dg.TargetFramework);
         FrameworkReducer reducer = new();
         NuGetFramework bestMatchFramework = reducer.GetNearest(NuGetFramework.ParseFolder(targetFramework), packageFrameworks) ??
-            throw new InvalidOperationException("Could not find matching framework.");
+            throw new CraftifyException("Could not find matching framework.");
 
         IEnumerable<string> files = packageReader.GetLibItems()
             .Where(fsg => fsg.TargetFramework == bestMatchFramework)
