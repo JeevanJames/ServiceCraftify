@@ -29,17 +29,17 @@ public static class ChildNameTransforms
     public static ChildNameTransformer RegexReplace(Regex pattern, MatchEvaluator evaluator) => (name, _, _) =>
         NameTransforms.RegexReplace(pattern, evaluator)(name);
 
-    public static ChildNameTransformer Replace(string oldValue, string newValue) => (name, _, _) =>
-        NameTransforms.Replace(oldValue, newValue)(name);
+    public static ChildNameTransformer Replace(string oldValue, string newValue, params string[] patterns) => (name, _, _) =>
+        NameTransforms.Replace(oldValue, newValue, patterns)(name);
 
-    public static ChildNameTransformer Strip(params string[] strs) => (name, _, _) =>
-        NameTransforms.Strip(strs)(name);
+    public static ChildNameTransformer Strip(string[] strs, params string[] patterns) => (name, _, _) =>
+        NameTransforms.Strip(strs, patterns)(name);
 
-    public static ChildNameTransformer StripPrefix(params string[] prefixes) => (name, _, _) =>
-        NameTransforms.StripPrefix(prefixes)(name);
+    public static ChildNameTransformer StripPrefix(string[] prefixes, params string[] patterns) => (name, _, _) =>
+        NameTransforms.StripPrefix(prefixes, patterns)(name);
 
-    public static ChildNameTransformer StripSuffix(params string[] suffixes) => (name, _, _) =>
-        NameTransforms.StripSuffix(suffixes)(name);
+    public static ChildNameTransformer StripSuffix(string[] suffixes, params string[] patterns) => (name, _, _) =>
+        NameTransforms.StripSuffix(suffixes, patterns)(name);
 
     public static ChildNameTransformer Prefix(string prefix, params string[] patterns) => (name, _, _) =>
         NameTransforms.Prefix(prefix, patterns)(name);

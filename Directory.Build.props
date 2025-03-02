@@ -19,7 +19,7 @@
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/JeevanJames/ServiceCraftify</PackageProjectUrl>
-        <PackageIcon>Icon.png</PackageIcon>
+        <!-- <PackageIcon>Icon.png</PackageIcon> -->
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/JeevanJames/ServiceCraftify.git</RepositoryUrl>
         <RepositoryType>Git</RepositoryType>
@@ -33,8 +33,12 @@
 
     <ItemGroup Label="Analyzer Package References">
         <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0" PrivateAssets="all"/>
-        <PackageReference Include="Roslynator.Analyzers" Version="4.13.0" PrivateAssets="all"/>
+        <PackageReference Include="Roslynator.Analyzers" Version="4.13.1" PrivateAssets="all"/>
         <PackageReference Include="SonarAnalyzer.CSharp" Version="10.6.0.109712" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
 </Project>

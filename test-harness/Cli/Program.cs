@@ -6,7 +6,8 @@ using NuGet.Packaging;
 #pragma warning disable CS8321 // Local function is declared but never used
 #pragma warning disable S1075 // URIs should not be hardcoded
 
-Craftify craftify = await Craftify.FromUri(new Uri("https://petstore.swagger.io/v2/swagger.json", UriKind.Absolute));
+//Craftify craftify = await Craftify.FromUri(new Uri("https://petstore.swagger.io/v2/swagger.json", UriKind.Absolute));
+Craftify craftify = await Craftify.FromFile(@"D:\Temp\OpenApi\Sample01.yml");
 craftify.EnsureNoErrors(failOnWarnings: true);
 
 GeneratedCode code = RunCSharpGenerator(craftify);
@@ -23,19 +24,19 @@ static GeneratedCode RunCSharpGenerator(Craftify craftify)
         ConsolidatedClient =
         {
             Name = "ConsolidatedClient",
-            PropertyNameTransforms = [NameTransforms.StripSuffix("Client")]
+            PropertyNameTransforms = [NameTransforms.StripSuffix(["Client"])]
         }
     };
     settings.Transformers.ServiceNames.AddRange(
-        [
-            NameTransforms.PascalCase,
-            NameTransforms.Suffix("Client"),
-        ]);
+    [
+        NameTransforms.PascalCase(),
+        NameTransforms.Suffix("Client"),
+    ]);
     settings.Transformers.OperationNames.Add(ChildNameTransforms.PascalCase);
     settings.Transformers.ModelNames.AddRange(
     [
-        NameTransforms.Strip("."),
-        NameTransforms.StripPrefix("Get"),
+        NameTransforms.Strip(["."]),
+        NameTransforms.StripPrefix(["Get"]),
     ]);
     settings.Transformers.PropertyNames.AddRange(
     [
@@ -52,7 +53,7 @@ static GeneratedCode RunPseudoGenerator(Craftify craftify)
     GeneratorSettings settings = new() { DefaultServiceName = "TheDefault" };
     settings.Transformers.ServiceNames.AddRange(
         [
-            NameTransforms.PascalCase,
+            NameTransforms.PascalCase(),
             NameTransforms.Suffix("Client"),
         ]);
     settings.Transformers.OperationNames.AddRange(
