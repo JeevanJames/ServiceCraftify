@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using System.Text.Json.Serialization;
 
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Interfaces;
@@ -32,7 +31,7 @@ public static class ExtensibleExtensionExtensions
         return converter(value);
 
         static TResult DefaultConverter(string value) =>
-            JsonSerializer.Deserialize<TResult>(value, _serializerOptions) ??
+            JsonSerializer.Deserialize<TResult>(value, JsonSerialization.DefaultOptions) ??
                 throw new CraftifyException($"Could not deserialize JSON value from extension type {typeof(TOpenApiExtensible).Name}.");
     }
 
@@ -54,13 +53,7 @@ public static class ExtensibleExtensionExtensions
         string stringValue = converter(value);
         extensible.SetExtensionValue(stringValue, key, subkey);
 
-        static string DefaultConverter(TValue value) => JsonSerializer.Serialize(value, _serializerOptions);
+        static string DefaultConverter(TValue value) => JsonSerializer.Serialize(value, JsonSerialization.DefaultOptions);
     }
-
-    private static readonly JsonSerializerOptions _serializerOptions = new()
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-        WriteIndented = false,
-    };
 }
 
