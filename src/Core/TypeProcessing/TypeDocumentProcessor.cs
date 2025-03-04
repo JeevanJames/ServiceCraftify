@@ -80,34 +80,3 @@ public sealed class TypeDocumentProcessor(OpenApiDocument document) : DocumentPr
         schema.SetSchemaType("object", new ObjectSchemaType());
     }
 }
-
-public static class TypeExtensionExtensions
-{
-    private const string TypeKey = "@@Type";
-    private const string SchemaTypeNameKey = "@@SchemaTypeName";
-
-    public static SchemaType GetSchemaType(this OpenApiSchema schema)
-    {
-        if (!schema.Extensions.TryGetValue(TypeKey, out IOpenApiExtension? typeExtension))
-            throw new CraftifyException($"No {TypeKey} extension value found for schema.");
-        if (typeExtension is not OpenApiString typeString)
-            throw new CraftifyException($"{TypeKey} is not a string.");
-        return SchemaType.CreateSchemaTypeInstance(schema.GetSchemaTypeName(), typeString.Value);
-    }
-
-    public static string GetSchemaTypeName(this OpenApiSchema schema)
-    {
-        if (!schema.Extensions.TryGetValue(SchemaTypeNameKey, out IOpenApiExtension? schemaTypeNameExtension))
-            throw new CraftifyException($"No {SchemaTypeNameKey} extension value found for schema.");
-        if (schemaTypeNameExtension is not OpenApiString schemaTypeNameString)
-            throw new CraftifyException($"{SchemaTypeNameKey} is not a string.");
-        return schemaTypeNameString.Value;
-    }
-
-    internal static void SetSchemaType(this OpenApiSchema schema, string schemaTypeName, SchemaType schemaType)
-    {
-        schema.Extensions[SchemaTypeNameKey] = new OpenApiString(schemaTypeName);
-        schema.Extensions[TypeKey] = new OpenApiString(schemaType.Encode());
-    }
-}
-
