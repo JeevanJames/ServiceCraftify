@@ -107,4 +107,16 @@ public sealed class Craftify
         };
         return generator.Generate();
     }
+
+    public void PrintDiagnosticInfo<TGenerator, TSettings>(TSettings settings)
+        where TGenerator : Generator<TSettings>, new()
+        where TSettings : GeneratorSettings
+    {
+        TGenerator generator = new()
+        {
+            OpenApiDoc = _openApiDoc,
+            Settings = settings,
+        };
+        generator.PrintDiagnosticInfo();
+    }
 }

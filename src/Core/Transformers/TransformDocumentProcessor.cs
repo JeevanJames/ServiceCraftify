@@ -7,9 +7,9 @@ public class TransformDocumentProcessor(OpenApiDocument document, GeneratorSetti
 {
     public override void Process()
     {
+        // Transform service, operation and parameter names.
         foreach (KeyValuePair<string, OpenApiPathItem> pathKvp in Document.Paths)
         {
-            // Transform service, operation and parameter names.
             foreach (OpenApiOperation operation in pathKvp.Value.Operations.Values)
             {
                 // Get the service name from the first operation tag or the default name if no tags
@@ -54,10 +54,9 @@ public class TransformDocumentProcessor(OpenApiDocument document, GeneratorSetti
             }
         }
 
-        foreach (KeyValuePair<string, OpenApiSchema> modelSchemaKvp in Document.Components.Schemas)
+        // Transform schemas models and their properties.
+        foreach ((string modelName, OpenApiSchema modelSchema) in Document.Components.Schemas)
         {
-            (string modelName, OpenApiSchema modelSchema) = modelSchemaKvp;
-
             string transformedModelName = modelName;
             if (Settings.Transformers.HasModelNameTransformers)
             {

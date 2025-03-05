@@ -47,6 +47,7 @@ static GeneratedCode RunCSharpGenerator(Craftify craftify)
         ChildNameTransforms.RegexReplace(@"^URL(\w+)$", "Url$1"),
     ]);
 
+    craftify.PrintDiagnosticInfo<CSharpClientGenerator, CSharpClientGeneratorSettings>(settings);
     IEnumerable<GeneratedCode> code = craftify.Generate<CSharpClientGenerator, CSharpClientGeneratorSettings>(settings);
     return code.First();
 }
