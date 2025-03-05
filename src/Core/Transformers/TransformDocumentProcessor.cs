@@ -9,8 +9,11 @@ public class TransformDocumentProcessor(OpenApiDocument document, GeneratorSetti
     {
         foreach (KeyValuePair<string, OpenApiPathItem> pathKvp in Document.Paths)
         {
+            // Transform service, operation and parameter names.
             foreach (OpenApiOperation operation in pathKvp.Value.Operations.Values)
             {
+                // Get the service name from the first operation tag or the default name if no tags
+                // exist, and transform it.
                 string originalServiceName = operation.Tags.FirstOrDefault()?.Name ?? Settings.DefaultServiceName;
                 string transformedServiceName = originalServiceName;
                 if (Settings.Transformers.HasServiceNameTransformers)
@@ -21,6 +24,9 @@ public class TransformDocumentProcessor(OpenApiDocument document, GeneratorSetti
 
                 operation.SetName(transformedServiceName);
 
+                // Get the operation name from the operations OperationId property and transform it.
+                // Since we're setting the operation name of the same OpenApiOperation instance where
+                // we set the service name, we need to use a child key.
                 string transformedOperationName = operation.OperationId;
                 if (Settings.Transformers.HasOperationNameTransformers)
                 {
@@ -29,6 +35,22 @@ public class TransformDocumentProcessor(OpenApiDocument document, GeneratorSetti
                 }
 
                 operation.SetName(transformedOperationName, operation.OperationId);
+
+                // Get the operation parameter names and transform them.
+                foreach (OpenApiParameter parameter in operation.Parameters)
+                {
+                    string transformedParameterName = parameter.Name;
+                    if (Settings.Transformers.HasParameterNameTransformers)
+                    {
+                        foreach (ParameterNameTransformer transformer in Settings.Transformers.ParameterNames)
+                        {
+                            transformedParameterName = transformer(
+                                transformedParameterName, transformedOperationName, transformedServiceName);
+                        }
+                    }
+
+                    parameter.SetName(transformedParameterName);
+                }
             }
         }
 

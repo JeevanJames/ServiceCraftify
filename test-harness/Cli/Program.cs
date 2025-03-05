@@ -1,3 +1,5 @@
+using Humanizer;
+
 using Jeevan.ServiceCraftify;
 using Jeevan.ServiceCraftify.CSharp;
 
@@ -33,6 +35,7 @@ static GeneratedCode RunCSharpGenerator(Craftify craftify)
         NameTransforms.Suffix("Client"),
     ]);
     settings.Transformers.OperationNames.Add(ChildNameTransforms.PascalCase);
+    settings.Transformers.ParameterNames.Add((n, _, _) => n.Underscore());
     settings.Transformers.ModelNames.AddRange(
     [
         NameTransforms.Strip(["."]),
